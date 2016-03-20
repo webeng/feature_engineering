@@ -60,3 +60,10 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
+
+#Other
+/data
+/cache
+/features/cache
+/features/main_text.py
+/features/images.py
