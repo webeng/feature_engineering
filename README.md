@@ -1,5 +1,5 @@
 # Feature Engineering
-Methods to extract features from text and links. The features can be used by machine learningn algorithms. Some of the methods are geared towards news articles but they also work with other domains. Run `python link.py` to see an example of features that can be extracted given an link.
+Methods to extract features from text and links. The features can be used to improve your application or by machine learning algorithms. Some of the methods are geared towards news articles but they also work with other domains. If you are not a Python programmer or need to do feature engineering at a larger scale, you can use [the API](https://market.mashape.com/adlegant/article-analysis) 
 
 ## Installation
 ```
@@ -8,8 +8,10 @@ cd feature_engineering
 virtualenv env
 source env/bin/activate
 pip install -r requirements.txt
-python link.py
 ```
+
+Run `python link.py` to see an example.
+
 
 ## author.py
 Extracts who is the author of an article given a URL.
