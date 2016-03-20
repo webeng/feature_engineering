@@ -1,15 +1,15 @@
-# articles_data_mining
-Methods to extract features from text and links. Some of the methods are geared towards news articles but they also work well with other domains. Run `python link.py` to see an example of features that can be extracted given an link.
+# Feature Engineering
+Methods to extract features from text and links. The features can be used by machine learningn algorithms. Some of the methods are geared towards news articles but they also work with other domains. Run `python link.py` to see an example of features that can be extracted given an link.
 
 ## Installation
-`
+```
 git clone git@github.com:webeng/feature_engineering.git
 cd feature_engineering
 virtualenv env
 source env/bin/activate
 pip install -r requirements.txt
 python link.py
-`
+``
 
 # author.py
 Extracts who is the author of an article given a URL.
