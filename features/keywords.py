@@ -8,35 +8,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import sys
 import string
 import cPickle
-import pyfscache
 from bs4 import BeautifulSoup
 from os import listdir
 from os.path import isfile, join, split
-import copy_reg
-import types
+import cProfile
+import pstats
+import tables
+import numpy as np
 nltk.data.path = ['/Users/joanfihu/nltk_data', '/Users/Joan/nltk_data', '/Users/sb/nltk_data', '/usr/share/nltk_data',
 				'/usr/local/share/nltk_data', '/usr/lib/nltk_data', '/usr/local/lib/nltk_data', '/home/ubuntu/nltk_data']
-
-path = "./"
-#path = "/home/www/brain/"
-cache_it = pyfscache.FSCache(path + 'cache', days=10, hours=12, minutes=30)
-
-# We had to add this to methods to be able to add new types to joblib pickle
-def _pickle_method(method):
-	func_name = method.im_func.__name__
-	obj = method.im_self
-	cls = method.im_class
-	return _unpickle_method, (func_name, obj, cls)
-
-def _unpickle_method(func_name, obj, cls):
-	for cls in cls.mro():
-		try:
-			func = cls.__dict__[func_name]
-		except KeyError:
-			pass
-	return func.__get__(obj, cls)
-
-copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)
 
 
 class KeywordsExtractor(object):
@@ -46,7 +26,7 @@ class KeywordsExtractor(object):
 	stemmer = PorterStemmer()
 	verbose = None
 
-	def __init__(self, num_kewyords=10, data_path='./data/', verbose=False):
+	def __init__(self, num_kewyords=10, data_path='/Applications/MAMP/htdocs/feature_engineering/data/', verbose=False):
 		self.num_kewyords = num_kewyords
 		self.data_path = data_path
 		self.verbose = verbose
@@ -108,11 +88,38 @@ class KeywordsExtractor(object):
 			use_idf=True,
 			sublinear_tf=False)
 
-		vectorizer.fit_transform(nltk_corpus)
+		#vectorizer.fit_transform(nltk_corpus)
+		vectorizer.fit(nltk_corpus)
+		# Avoid having to pickle instance methods, we will set this method on on load
+		vectorizer.tokenizer = None
+		keys = np.array(vectorizer.vocabulary_.keys(), dtype=str)
+		values = np.array(vectorizer.vocabulary_.values(), dtype=int)
+		stop_words = np.array(list(vectorizer.stop_words_), dtype=str)
 
-		output = open(self.data_path + 'train_tfidf_vectorizer.pkl', 'wb')
-		cPickle.dump(vectorizer, output, protocol=-1)
-		output.close()
+		with tables.openFile(self.data_path + 'tfidf_keys.hdf', 'w') as f:
+			atom = tables.Atom.from_dtype(keys.dtype)
+			ds = f.createCArray(f.root, 'keys', atom, keys.shape)
+			ds[:] = keys
+
+		with tables.openFile(self.data_path + 'tfidf_values.hdf', 'w') as f:
+			atom = tables.Atom.from_dtype(values.dtype)
+			ds = f.createCArray(f.root, 'values', atom, values.shape)
+			ds[:] = values
+
+		with tables.openFile(self.data_path + 'tfidf_stop_words.hdf', 'w') as f:
+			atom = tables.Atom.from_dtype(stop_words.dtype)
+			ds = f.createCArray(f.root, 'stop_words', atom, stop_words.shape)
+			ds[:] = stop_words
+
+		vectorizer.vocabulary_ = None
+		vectorizer.stop_words_ = None
+
+		with open(self.data_path + 'tfidf.pkl', 'wb') as fin:
+			cPickle.dump(vectorizer, fin)
+
+		vectorizer.vocabulary_ = dict(zip(keys, values))
+		vectorizer.stop_words_ = stop_words
+
 		return vectorizer
 
 	def extract_bigrams(self, text):
@@ -147,11 +154,23 @@ class KeywordsExtractor(object):
 
 		return bigrams
 
-	@cache_it
 	def get_tfidf_model(self):
-		pkl_file = open(self.data_path + 'train_tfidf_vectorizer.pkl', 'rb')
-		vectorizer = cPickle.load(pkl_file)
-		pkl_file.close()
+		with open(self.data_path + 'tfidf.pkl', 'rb') as pkl_file:
+			vectorizer = cPickle.load(pkl_file)
+
+		vectorizer.tokenizer = self.tokenize
+
+		with tables.openFile(self.data_path + 'tfidf_keys.hdf', 'r') as f:
+			keys = f.root.keys.read()
+
+		with tables.openFile(self.data_path + 'tfidf_values.hdf', 'r') as f:
+			values = f.root.values.read()
+
+		vectorizer.vocabulary_ = dict(zip(keys, values))
+
+		with tables.openFile(self.data_path + 'tfidf_stop_words.hdf', 'r') as f:
+			vectorizer.stop_words_ = set(f.root.stop_words.read())
+
 		return vectorizer
 
 	def remove_return_lines_and_quotes(self, text):
@@ -165,12 +184,8 @@ class KeywordsExtractor(object):
 
 		try:
 			vectorizer = self.get_tfidf_model()
-		except IOError, e:
+		except (EOFError, IOError), e:
 			vectorizer = self.train_tfidf(tokenizer, tfidf_corpus)
-		except UnboundLocalError:
-			#cache_it.clear()
-			cache_it.purge()
-			vectorizer = self.get_tfidf_model()
 
 		docs = vectorizer.transform(documents)
 		feature_names = vectorizer.get_feature_names()
@@ -179,19 +194,11 @@ class KeywordsExtractor(object):
 
 			sort_score_indices = np.argsort(docs[i, :].data)
 			top_n_indices = self.num_kewyords if (len(sort_score_indices)) > self.num_kewyords else len(sort_score_indices)
-
-			#top_keywords = vectorizer.get_feature_names()[docs[i,:].indices[np.argsort(docs[i,:].data)[::-1][:1]]]
 			top_features_indices = []
+
 			if top_n_indices:
 				top_features_indices = docs[i, :].indices[np.argsort(docs[i, :].data)[::-1][:top_n_indices]]
 
-			# print "Top Feature Indices: {}".format(top_features_indices)
-
-			# for j in docs[i,:].indices:
-			# print "Relevance: {}, Index: {} Features Name:
-			# {}".format(docs[i,j], j, feature_names[j])
-
-			# print "Top features: "
 			top_features_names = [feature_names[f] for f in top_features_indices]
 
 			# Extract most common bigrams. TFIDF gives more relevance to
@@ -204,8 +211,12 @@ class KeywordsExtractor(object):
 		return features
 
 if __name__ == '__main__':
-	k = KeywordsExtractor(num_kewyords=10, verbose=True, data_path='/Applications/MAMP/htdocs/article_data_mining/data/')
+	k = KeywordsExtractor(num_kewyords=10, verbose=True, data_path='/Applications/MAMP/htdocs/feature_engineering/data/')
 	document = "Iain Duncan Smith has criticised the government's desperate search for savings in his first interview since resigning as work and pensions secretary."
-	print k.extract(documents=[document])[0]
+	# print k.extract(documents=[document])[0]
+
+	cProfile.run("k.extract(documents=[document])[0]", 'restats')
+	p = pstats.Stats('restats')
+	p.sort_stats('cumulative').print_stats(30)
 	#print k.train_tfidf()
 	#print k.get_tfidf_model()

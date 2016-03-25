@@ -9,19 +9,22 @@ cache_it = pyfscache.FSCache('./cache', days=10, hours=12, minutes=30)
 
 class Classifier(object):
 
+	def __init__(self, data_path='/Applications/MAMP/htdocs/feature_engineering/data/'):
+		self.data_path = data_path
+
 	@cache_it
 	def getModels(self):
-		categories = cPickle.load(open('./data/categories.pkl', 'rb'))
-		category_map = cPickle.load(open('./data/category_map.pkl', 'rb'))
-		clf = cPickle.load(open('./data/article_classifier_model.pkl', 'rb'))
+		categories = cPickle.load(open(self.data_path + '/categories.pkl', 'rb'))
+		category_map = cPickle.load(open(self.data_path + '/category_map.pkl', 'rb'))
+		clf = cPickle.load(open(self.data_path + '/article_classifier_model.pkl', 'rb'))
 
 		count_vect = CountVectorizer()
-		count_vect = cPickle.load(open('./data/count_vect.pkl', 'rb'))
+		count_vect = cPickle.load(open(self.data_path + '/count_vect.pkl', 'rb'))
 
 		tfidf_transformer = TfidfTransformer()
-		tfidf_transformer = cPickle.load(open('./data/tfidf_transformer.pkl', 'rb'))
+		tfidf_transformer = cPickle.load(open(self.data_path + '/tfidf_transformer.pkl', 'rb'))
 
-		tree = cPickle.load(open('./data/tree.pkl', 'rb'))
+		tree = cPickle.load(open(self.data_path + '/tree.pkl', 'rb'))
 
 		return categories, category_map, clf, count_vect, tfidf_transformer, tree
 

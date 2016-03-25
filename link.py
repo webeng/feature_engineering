@@ -1,8 +1,8 @@
 from features.title import TitleExtractor
 from features.main_text import MainTextExtractor
 from features.images import ImagesExtractor
-from features.sentiment import getSentimentText
-from features.keywords import KeywordsExtractor, _pickle_method, _unpickle_method
+from features.sentiment import getSentimentText, findSentiment
+from features.keywords import KeywordsExtractor
 from features.keywords import KeywordsExtractor
 from features.entities import Entities
 from features.author import AuthorExtractor
@@ -61,7 +61,7 @@ class Link(object):
 			keywords = [t for t in article.tags]
 
 		if sentiment:
-			tags = findSentiment(keywords)
+			keywords = findSentiment(keywords)
 
 		ent = Entities()
 		try:
@@ -83,12 +83,12 @@ class Link(object):
 		else:
 			article.categories = ["Article classification not ready for: " + language[0]]
 
-		images = ImagesExtractor.extract(link, article.raw_html)
-
 		if article.top_image:
 			thumbnail = article.top_image.src
 		else:
-			thumbnail = images[0]
+			images = ImagesExtractor.extract(link, article.raw_html)
+			if images:
+				thumbnail = images[0]
 
 		return {
 			"title": article.title,
@@ -98,7 +98,6 @@ class Link(object):
 			"text_sentiment": text_sentiment,
 			"main_body": main_body,
 			"image": thumbnail,
-			"images": images,
 			"date": article.publish_date,
 			"tags": keywords,
 			"entities": entities,

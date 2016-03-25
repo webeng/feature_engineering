@@ -29,16 +29,14 @@ class AuthorExtractor(object):
 			if href:
 				if re.search('.author.?/.', href) is not None:
 					authors.append(self.clean_author(href, a.get_text()))
-					break
 				elif re.search('.people/.', href) is not None:
 					authors.append(self.clean_author(href, a.get_text()))
-					break
 				elif (re.search('.user.?/.', href) is not None) & (re.search('.youtube.com.', href) is None):
 					authors.append(self.clean_author(href, a.get_text()))
-					break
 				elif re.search('.editor.?/.', href) is not None:
 					authors.append(self.clean_author(href, a.get_text()))
-					break
+				elif re.search('.contributor.?/.', href) is not None:
+					authors.append(self.clean_author(href, a.get_text()))
 
 		if not authors:
 			author = None
