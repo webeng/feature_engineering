@@ -18,7 +18,7 @@ import langid
 
 class Link(object):
 	@classmethod
-	def extract(self, link, entity_description=False, sentiment=False):
+	def extract(self, link, entity_description=False, sentiment=False, data_path='./data/'):
 		errors, summaries, categories, entities, keywords = [], [], [], [], []
 		article = Goose().extract(link)
 		authors = AuthorExtractor.extract(link, article.raw_html)
@@ -29,7 +29,7 @@ class Link(object):
 			article.title = TitleExtractor.extract(
 				article.raw_html, article.raw_doc)[0]
 
-		k = KeywordsExtractor(num_kewyords=20, verbose=True, data_path='./data/')
+		k = KeywordsExtractor(num_kewyords=20, verbose=True, data_path=data_path)
 
 		if article.top_node:
 			main_body = etree.tostring(article.top_node)
@@ -77,7 +77,7 @@ class Link(object):
 			language = langid.classify(article.cleaned_text)[0]
 
 		if language in ['en', 'eo']:
-			clf = Classifier(data_path='./data/')
+			clf = Classifier(data_path=data_path)
 			article.categories = clf.predict(text)
 		else:
 			article.categories = ["Article classification not ready for: " + language[0]]
@@ -86,8 +86,7 @@ class Link(object):
 			thumbnail = article.top_image.src
 		else:
 			images = ImagesExtractor.extract(link, article.raw_html)
-			if images:
-				thumbnail = images[0]
+			thumbnail = images[0] if images else None
 
 		return {
 			"title": article.title,

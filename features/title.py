@@ -45,7 +45,10 @@ class TitleExtractor(object):
         article.raw_html = html
         article.raw_doc = html_formated
         article.doc = article.raw_doc
-        goose_title = TitleExtractorGoose(Configuration(), article).get_title()
+        try:
+            goose_title = TitleExtractorGoose(Configuration(), article).get_title()
+        except AttributeError, e:
+            goose_title = None
 
         return list(set(potential_titles + [goose_title]))
 

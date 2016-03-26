@@ -15,6 +15,7 @@ import cProfile
 import pstats
 import tables
 import numpy as np
+nltk.data.path = ['home/ubuntu/nltk_data', '/Users/joanfihu/nltk_data', '/usr/share/nltk_data', '/usr/local/share/nltk_data', '/usr/lib/nltk_data', '/usr/local/lib/nltk_data' ,'/home/ubuntu/nltk_data']
 
 
 class KeywordsExtractor(object):
