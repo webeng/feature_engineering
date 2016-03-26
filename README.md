@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 Run `python link.py` to see an example.
 
-If you want fast keyword extraction, you will have to [install HDFS](http://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/release_docs/INSTALL). Also, you might have to install pytables by running this command `sudo HDF5_DIR=/usr/local/hdf5/ pip install tables`. I'll try develop a slower version without the HDFS.
+If you want fast keyword extraction, you will have to [install HDFS](http://www.hdfgroup.org/ftp/HDF5/current/src/unpacked/release_docs/INSTALL). Also, you might have to install pytables by running this command `sudo HDF5_DIR=/usr/local/hdf5/ pip install tables`.  Also add /usr/local/hdf5/lib/ to LD_LIBRARY_PATH. I'll try develop a slower version without the HDFS.
 
 # Modules
 You can run each module individually to see examples.

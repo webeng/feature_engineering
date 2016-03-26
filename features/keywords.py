@@ -15,8 +15,6 @@ import cProfile
 import pstats
 import tables
 import numpy as np
-nltk.data.path = ['/Users/joanfihu/nltk_data', '/Users/Joan/nltk_data', '/Users/sb/nltk_data', '/usr/share/nltk_data',
-				'/usr/local/share/nltk_data', '/usr/lib/nltk_data', '/usr/local/lib/nltk_data', '/home/ubuntu/nltk_data']
 
 
 class KeywordsExtractor(object):
@@ -26,7 +24,7 @@ class KeywordsExtractor(object):
 	stemmer = PorterStemmer()
 	verbose = None
 
-	def __init__(self, num_kewyords=10, data_path='/Applications/MAMP/htdocs/feature_engineering/data/', verbose=False):
+	def __init__(self, num_kewyords=10, data_path='../data/', verbose=False):
 		self.num_kewyords = num_kewyords
 		self.data_path = data_path
 		self.verbose = verbose
@@ -211,7 +209,7 @@ class KeywordsExtractor(object):
 		return features
 
 if __name__ == '__main__':
-	k = KeywordsExtractor(num_kewyords=10, verbose=True, data_path='/Applications/MAMP/htdocs/feature_engineering/data/')
+	k = KeywordsExtractor(num_kewyords=10, verbose=True, data_path='../data/')
 	document = "Iain Duncan Smith has criticised the government's desperate search for savings in his first interview since resigning as work and pensions secretary."
 	# print k.extract(documents=[document])[0]
 

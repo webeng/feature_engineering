@@ -9,7 +9,7 @@ cache_it = pyfscache.FSCache('./cache', days=10, hours=12, minutes=30)
 
 class Classifier(object):
 
-	def __init__(self, data_path='/Applications/MAMP/htdocs/feature_engineering/data/'):
+	def __init__(self, data_path='../data/'):
 		self.data_path = data_path
 
 	@cache_it
