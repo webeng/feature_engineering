@@ -3,7 +3,6 @@ from features.main_text import MainTextExtractor
 from features.images import ImagesExtractor
 from features.sentiment import getSentimentText, findSentiment
 from features.keywords import KeywordsExtractor
-from features.keywords import KeywordsExtractor
 from features.entities import Entities
 from features.author import AuthorExtractor
 from features.category import Classifier
@@ -30,7 +29,7 @@ class Link(object):
 			article.title = TitleExtractor.extract(
 				article.raw_html, article.raw_doc)[0]
 
-		k = KeywordsExtractor(num_kewyords=20, verbose=True)
+		k = KeywordsExtractor(num_kewyords=20, verbose=True, data_path='./data/')
 
 		if article.top_node:
 			main_body = etree.tostring(article.top_node)
@@ -78,7 +77,7 @@ class Link(object):
 			language = langid.classify(article.cleaned_text)[0]
 
 		if language in ['en', 'eo']:
-			clf = Classifier()
+			clf = Classifier(data_path='./data/')
 			article.categories = clf.predict(text)
 		else:
 			article.categories = ["Article classification not ready for: " + language[0]]
