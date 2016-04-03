@@ -16,13 +16,20 @@ from textblob import TextBlob
 import langid
 
 
+class NoMainTextException(Exception):
+    pass
+
+
 class Link(object):
 	@classmethod
 	def extract(self, link, entity_description=False, sentiment=False, data_path='./data/'):
 		errors, summaries, categories, entities, keywords = [], [], [], [], []
 		article = Goose().extract(link)
-		authors = AuthorExtractor.extract(link, article.raw_html)
 
+		if not article.raw_doc:
+			raise NoMainTextException
+
+		authors = AuthorExtractor.extract(link, article.raw_html)
 		publish_date = article.publish_date if article.publish_date else None
 
 		if not article.title:
@@ -31,11 +38,15 @@ class Link(object):
 
 		k = KeywordsExtractor(num_kewyords=20, verbose=True, data_path=data_path)
 
-		if article.top_node:
+		if article.top_node is not None:
 			main_body = etree.tostring(article.top_node)
 		else:
-			article.cleaned_text = MainTextExtractor.extract(
-				article.raw_html, article.raw_doc)[1]
+			cleant_text_suggestions = MainTextExtractor.extract(article.raw_html, article.raw_doc)
+			article.cleaned_text = cleant_text_suggestions[1]
+			if not article.cleaned_text:
+				article.cleaned_text = cleant_text_suggestions[2]
+			if not article.cleaned_text:
+				raise NoMainTextException
 			main_body = 'Sorry, we could not detect the main HTML content for this article'
 
 		try:
