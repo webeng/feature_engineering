@@ -65,5 +65,4 @@ target/
 /data
 /cache
 /features/cache
-/features/main_text.py
 restats
