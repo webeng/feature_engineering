@@ -14,6 +14,10 @@ from pyteaser_c import GetArticle
 from pyteaser_c import keywords
 from textblob import TextBlob
 import langid
+from bs4 import BeautifulSoup
+#import lxml.html
+from lxml import html
+import requests
 
 
 class NoMainTextException(Exception):
@@ -26,7 +30,14 @@ class Link(object):
 		errors, summaries, categories, entities, keywords = [], [], [], [], []
 		article = Goose().extract(link)
 
-		if not article.raw_doc:
+		valid_html = bool(BeautifulSoup(article.raw_html[0:100], "html.parser").find())
+
+		if not valid_html:
+			r = requests.get(link)
+			article.raw_html = r.text
+			article.raw_doc = html.fromstring(r.text)
+
+		if article.raw_doc is None:
 			raise NoMainTextException
 
 		authors = AuthorExtractor.extract(link, article.raw_html)
@@ -93,11 +104,13 @@ class Link(object):
 		else:
 			article.categories = ["Article classification not ready for: " + language[0]]
 
+		images = ImagesExtractor.extract(link, article.raw_html)
+
 		if article.top_image:
 			thumbnail = article.top_image.src
 		else:
-			images = ImagesExtractor.extract(link, article.raw_html)
-			thumbnail = images[0] if images else None
+			#thumbnail = images[0] if images else None
+			thumbnail = ImagesExtractor.select_top_image(images[0:50])
 
 		return {
 			"title": article.title,
@@ -106,6 +119,7 @@ class Link(object):
 			"cleaned_text": article.cleaned_text,
 			"text_sentiment": text_sentiment,
 			"main_body": main_body,
+			"images": images,
 			"image": thumbnail,
 			"date": article.publish_date,
 			"tags": keywords,
@@ -116,6 +130,14 @@ class Link(object):
 		}
 
 if __name__ == '__main__':
+	import pprint
 	l = Link()
-	l = l.extract('http://techcrunch.com/2016/03/18/twitter-says-few-users-have-opted-out-of-its-new-algorithmic-timeline/')
-	print l
+	url = 'https://www.wired.com/2017/05/google-just-made-email-heckuva-lot-easier-deal/'
+	# l = l.extract('http://techcrunch.com/2016/03/18/twitter-says-few-users-have-opted-out-of-its-new-algorithmic-timeline/')
+	l = l.extract('https://www.wired.com/2017/05/google-just-made-email-heckuva-lot-easier-deal/')
+	# l = l.extract('http://www.independent.co.uk/life-style/gadgets-and-tech/features/google-lens-ai-preview-features-so-impressive-its-scary-a7745686.html')
+	
+	pprint.pprint(l)
+	# import requests 
+	# r = requests.get(url)
+	# print r.text
