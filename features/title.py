@@ -21,7 +21,7 @@ class TitleExtractor(object):
         return None
     
     @classmethod
-    def f7(cls, seq):
+    def _remove_duplicates_keep_order(cls, seq):
         seen = set()
         seen_add = seen.add
         return [x for x in seq if not (x in seen or seen_add(x))]
@@ -56,7 +56,7 @@ class TitleExtractor(object):
         except AttributeError, e:
             goose_title = None
 
-        return cls.f7(list(potential_titles + [goose_title]))
+        return cls._remove_duplicates_keep_order(list(potential_titles + [goose_title]))
         # return list(set(potential_titles + [goose_title])) it doesn't preserve the order
 
 if __name__ == '__main__':
