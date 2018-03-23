@@ -19,6 +19,12 @@ class TableExtractor(object):
 
         soup = BeautifulSoup(html, 'html.parser')
         tables = []
+        excluded_tags = [
+            'script', 'style', 'noscript', 'head', 'meta',
+            'header', 'footer', 'link', 'input', 'nav'
+        ]
+
+        [x.extract() for et in excluded_tags for x in soup.find_all(et) if x]
 
         for t in soup.find_all('table'):
             tables.append(t)

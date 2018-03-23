@@ -49,7 +49,7 @@ class MainTextExtractor(object):
     @classmethod
     def _parse_tags(cls, html):
 
-        excluded_tags = ['script', 'style', 'noscript', 'html', 'head', 'meta',
+        excluded_tags = ['script', 'style', 'noscript', 'html', 'head', 'meta', 'header', 'footer',
                          'link', 'body', 'input', 'form', 'a']
         minimum_text_node_length = 8
 
@@ -246,12 +246,14 @@ class MainTextExtractor(object):
         goose_formatter = OutputFormatter(Configuration(), article)
         # goose_image_extractor = ImageExtractor(Configuration(), article) use
 
-        article.doc = goose_cleaner.clean()
-        article.top_node = goose_extractor.calculate_best_node()
-
-        if article.top_node is not None:
-            article.top_node = goose_extractor.post_cleanup()
-            article.cleaned_text = goose_formatter.get_formatted_text()
+        try:
+            article.doc = goose_cleaner.clean()
+            article.top_node = goose_extractor.calculate_best_node()
+            if article.top_node is not None:
+                article.top_node = goose_extractor.post_cleanup()
+                article.cleaned_text = goose_formatter.get_formatted_text()
+        except UnicodeDecodeError, e:
+            article.top_node = None
 
         return article.cleaned_text
 

@@ -49,7 +49,16 @@ class ImagesExtractor(object):
 		max_surface = 0
 		selected = None
 		for img_src in images:
-			file = cStringIO.StringIO(urllib.urlopen(img_src).read())
+			# print img_src
+			try:
+				file = cStringIO.StringIO(urllib.urlopen(img_src).read())
+			except UnicodeDecodeError, e:
+				print e
+				continue
+			except IOError, e:
+				print e
+				continue
+
 			try:
 				im = Image.open(file)
 			except IOError, e:
@@ -64,11 +73,33 @@ class ImagesExtractor(object):
 		return selected
 
 	@classmethod
+	def rank(cls, images):
+		images_aux = []
+
+		for img_src in images:
+			try:
+				file = cStringIO.StringIO(urllib.urlopen(img_src).read())
+				im = Image.open(file)
+			except UnicodeDecodeError, e:
+				continue
+			except IOError, e:
+				continue
+
+			width, height = im.size
+			if width > 100 and height > 100:
+				surface = (width * height) / 2
+				images_aux.append([img_src, surface])
+
+		images_aux.sort(key=lambda x: x[1], reverse=True)
+
+		return images_aux
+
+	@classmethod
 	def extract(cls, base_url, html):
 		soup = BeautifulSoup(html, 'html.parser')
 
 		img_tag_urls = filter(None, [img.get('src') for img in soup.find_all('img')])
-		zoom_img_urls = filter(None, [ImagesExtractor._get_zoom_image(img) for img in soup.select('a > img')])
+		zoom_img_urls = [] # zoom_img_urls = filter(None, [ImagesExtractor._get_zoom_image(img) for img in soup.select('a > img')])
 		meta_img_urls = filter(None, [ImagesExtractor._get_meta_image(mtag) for mtag in soup.select('meta[property=og:image]')])
 		image_urls = img_tag_urls + zoom_img_urls + meta_img_urls
 
@@ -77,6 +108,7 @@ class ImagesExtractor(object):
 if __name__ == '__main__':
 	from goose import Goose
 	iE = ImagesExtractor()
-	target_url = 'http://www.toshiba-aircon.co.uk/products/refrigerant-leak-detection-solutions/refrigerant-leak-detection-solutions/rbc-aip4'
+	# target_url = 'http://www.toshiba-aircon.co.uk/products/refrigerant-leak-detection-solutions/refrigerant-leak-detection-solutions/rbc-aip4'
+	target_url = 'https://www.trilux.com/products/en/Indoor-lighting/Continuous-line-luminaires-and-batten-luminaires/E-Line-LED-IP20-54-rapid-mounting-continuous-line/?retainFilter=true'
 	article = Goose().extract(target_url)
 	print iE.extract(target_url, article.raw_html)
