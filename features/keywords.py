@@ -15,6 +15,8 @@ import cProfile
 import pstats
 import tables
 import numpy as np
+import csv
+from pprint import pprint
 nltk.data.path = ['home/ubuntu/nltk_data', '/Users/joanfihu/nltk_data', '/usr/share/nltk_data', '/usr/local/share/nltk_data', '/usr/lib/nltk_data', '/usr/local/lib/nltk_data' ,'/home/ubuntu/nltk_data']
 
 
@@ -44,6 +46,11 @@ class KeywordsExtractor(object):
 		#stems = self.stem_tokens(tokens)
 		return stems
 
+	def tokenize2(self, text):
+		lowers = str(text).lower()
+		text = lowers.translate(None, string.punctuation)
+		return nltk.word_tokenize(text)
+
 	def get_bbc_news_corpus(self):
 		news_corpus = []
 		for news_type in ['business', 'entertainment', 'politics', 'sport', 'tech']:
@@ -51,15 +58,55 @@ class KeywordsExtractor(object):
 			onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 			for file_name in onlyfiles:
 				f = open(self.data_path + 'bbc/' + news_type + '/' + file_name, 'r')
-				news_corpus.append(f.read().decode('utf-8', 'replace'))
+
+				text = f.read().decode('utf-8', 'replace')
+
+				soup = BeautifulSoup(text, 'html.parser')
+				text = soup.getText()
+				text = filter(lambda x: x in string.printable, text)
+				lowers = str(text).lower()
+				text = lowers.translate(None, string.punctuation)
+
+				news_corpus.append(text)
 				f.close()
 
 		return news_corpus
 
+	def get_specifiedby_corpus(self):
+		specifiedby_corpus = []
+		with open(self.data_path + 'specifiedby_corpus.csv', 'rU') as csvfile:
+			reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+			header = next(reader)
+
+			processed, failed = 0, 0
+			for row in reader:
+				if row:
+					try:
+						specifiedby_corpus.append(self.remove_non_ascii(row[0] + ' ' + row[1]))
+						processed += 1
+					except Exception, e:
+						failed += 1
+				else:
+					failed += 1
+
+		print "get_specifiedby_corpus - processed: {} failed {}".format(processed, failed)
+		return specifiedby_corpus
+		#return [" ".join(specifiedby_corpus)]
+
+	def remove_non_ascii(self, text):
+		"""
+			Removes non ascii characters by converting them to their integers 
+			and then remove anythin above ref 128
+			Parameters :
+			- text: <string> text to remove characters
+		"""
+		return ''.join([i if ord(i) < 128 else ' ' for i in text])
+
 	def train_tfidf(self, tokenizer='custom', corpus='news'):
 
 		if tokenizer == 'custom':
-			tokenizer = self.tokenize
+			#tokenizer = self.tokenize
+			tokenizer = self.tokenize2
 
 		nltk_corpus = []
 		if corpus == 'all':
@@ -69,14 +116,15 @@ class KeywordsExtractor(object):
 			nltk_corpus += [nltk.corpus.reuters.raw(f_id) for f_id in nltk.corpus.reuters.fileids()]
 		elif corpus == 'news':
 			nltk_corpus += self.get_bbc_news_corpus()
+			nltk_corpus += self.get_specifiedby_corpus()
 
 		if self.verbose:
 			print "LENGTH nltk corpus corpus: {}".format(sum([len(d) for d in nltk_corpus]))
 
 
 		vectorizer = TfidfVectorizer(
-			max_df=1.0,
-			min_df=2,
+			max_df=0.5,
+			min_df=150,
 			encoding='utf-8',
 			decode_error='strict',
 			max_features=None,
@@ -84,6 +132,7 @@ class KeywordsExtractor(object):
 			ngram_range=(1, 3),
 			norm='l2',
 			tokenizer=tokenizer,
+			analyzer='word',
 			use_idf=True,
 			sublinear_tf=False)
 
@@ -187,6 +236,7 @@ class KeywordsExtractor(object):
 			vectorizer = self.train_tfidf(tokenizer, tfidf_corpus)
 
 		docs = vectorizer.transform(documents)
+
 		feature_names = vectorizer.get_feature_names()
 		features = []
 		for i in xrange(docs.shape[0]):
@@ -202,20 +252,23 @@ class KeywordsExtractor(object):
 
 			# Extract most common bigrams. TFIDF gives more relevance to
 			# unigrams than bigrams
-			bigrams = self.extract_bigrams(documents[i])
-			top_features_names = list(set(top_features_names + bigrams))
+			# bigrams = self.extract_bigrams(documents[i])
+			# top_features_names = list(set(top_features_names + bigrams))
 
 			features.append(top_features_names)
 
 		return features
 
 if __name__ == '__main__':
-	k = KeywordsExtractor(num_kewyords=10, verbose=True, data_path='../data/')
+	k = KeywordsExtractor(num_kewyords=100, verbose=True, data_path='../data/')
 	document = "Iain Duncan Smith has criticised the government's desperate search for savings in his first interview since resigning as work and pensions secretary."
-	# print k.extract(documents=[document])[0]
-
-	cProfile.run("k.extract(documents=[document])[0]", 'restats')
+	document = "High-quality, contemporary facing brick available with a smooth or textured finish. There are bricks. And there are bricks you can design with. If you're used to assuming a choice of one colour and one finish, why not choose a brick that can become part of your design process instead? The Oakland range of brick can add a spark to architectural designs - whether your next project is traditional, contemporary or avant-garde, choose from a broad range of precision facing bricks with dynamic colours that will help bring the final project to life. Oakland Brick is available in a range of 20 colour and texture combinations. LOW EFFLORESCENCE\r\n\r\nAG's brick range is free from soluble salt, meaning that Oakland Brick's levels of efflorescence are extremely low.\r\n\r\n\r\nCOMPLEMENTARY SPECIALS\r\n\r\nA range of complementary specials are available.\r\n\r\n\r\nBRE GREEN GUIDE 'A' RATED\r\n\r\nOakland Brick is produced in the UK from locally sourced materials and manufactured with 90 harvested rain water and 100 renewable energy in the production process.\n\nProperties: Smooth, Textured, 1, BS EN 7713, ISO 9001, ISO 14001, A+, F2, Frost Resistant, A1 Oakland Brick - A contemporary brick with clean, crisp lines"
+	print k.extract(documents=[document])[0]
+	# k.get_specifiedby_corpus()
+	# cProfile.run("k.extract(documents=[document])[0]", 'restats')
 	p = pstats.Stats('restats')
 	p.sort_stats('cumulative').print_stats(30)
+
+
 	#print k.train_tfidf()
 	#print k.get_tfidf_model()
