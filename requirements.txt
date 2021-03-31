@@ -4,7 +4,7 @@ cssselect==0.9.1
 goose-extractor==1.0.25
 jieba==0.38
 langid==1.1.5
-lxml==3.6.0
+lxml==4.6.3
 nltk==3.2
 numexpr==2.5
 numpy==1.10.4
